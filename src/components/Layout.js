@@ -1,39 +1,67 @@
-import React from 'react';
-import {Helmet} from 'react-helmet';
-import _ from 'lodash';
+import React, { Component } from 'react';
+import PropTypes from 'prop-types';
+import Helmet from 'react-helmet';
+import { StaticQuery, graphql } from 'gatsby';
 
-import {safePrefix} from '../utils';
-import Header from './Header';
-import Footer from './Footer';
+import '../assets/sass/main.scss';
 
-export default class Body extends React.Component {
-    render() {
-        return (
-            <React.Fragment>
-                <Helmet>
-                    <title>{_.get(this.props, 'pageContext.frontmatter.title') && _.get(this.props, 'pageContext.frontmatter.title') + ' - '}{_.get(this.props, 'pageContext.site.siteMetadata.title')}</title>
-                    <meta charSet="utf-8"/>
-                    <meta name="viewport" content="width=device-width, initialScale=1.0" />
-                    <meta name="google" content="notranslate" />
-                    <link href="https://fonts.googleapis.com/css?family=Roboto:400,400i,700,700i" rel="stylesheet"/>
-                    <link rel="stylesheet" href={safePrefix('assets/css/main.css')}/>
-                    {(_.get(this.props, 'pageContext.frontmatter.template') === 'post') &&  
-                    _.get(this.props, 'pageContext.frontmatter.canonical_url') && 
-                    <link rel="canonical" href={_.get(this.props, 'pageContext.frontmatter.canonical_url')}/>
-                    }
-                </Helmet>
-                <div id="page" className={'site style-' + _.get(this.props, 'pageContext.site.siteMetadata.layout_style') + ' palette-' + _.get(this.props, 'pageContext.site.siteMetadata.palette')}>
-                  <Header {...this.props} />
-                  <div id="content" className="site-content">
-                    <div className="inner">
-                      <main id="main" className="site-main">
-                        {this.props.children}
-                      </main>
-                      <Footer {...this.props} />
-                    </div>
-                  </div>
-                </div>
-            </React.Fragment>
-        );
+class Layout extends Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      isPreloaded: true,
+    };
+  }
+
+  componentDidMount() {
+    this.timeoutId = setTimeout(() => {
+      this.setState({ isPreloaded: false });
+    }, 100);
+  }
+
+  componentWillUnmount() {
+    if (this.timeoutId) {
+      clearTimeout(this.timeoutId);
     }
+  }
+
+  render() {
+    const { children } = this.props;
+    const { isPreloaded } = this.state;
+    return (
+      <StaticQuery
+        query={graphql`
+          query SiteTitleQuery {
+            site {
+              siteMetadata {
+                title
+              }
+            }
+          }
+        `}
+        render={data => (
+          <>
+            <Helmet
+              title={data.site.siteMetadata.title}
+              meta={[
+                { name: 'description', content: 'Highlights' },
+                { name: 'keywords', content: 'site, web' },
+              ]}
+            >
+              <html lang="en" />
+            </Helmet>
+            <div className={isPreloaded ? 'main-body is-preload' : 'main-body'}>
+              {children}
+            </div>
+          </>
+        )}
+      />
+    );
+  }
 }
+
+Layout.propTypes = {
+  children: PropTypes.node.isRequired,
+};
+
+export default Layout;
